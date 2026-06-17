@@ -4,7 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Host independiente de la API (sin frontend). Pensado para publicar el servicio por sí solo
 // (p. ej. en somee u otra instancia) en el futuro.
-builder.Services.AddJaguaresApi(builder.Configuration);
+builder.Services.AddJaguaresApi(builder.Environment.IsDevelopment(), builder.Configuration);
 
 var app = builder.Build();
 

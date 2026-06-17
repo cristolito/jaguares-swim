@@ -1,10 +1,13 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Jaguares.Api.Data;
@@ -23,7 +26,7 @@ namespace Jaguares.Api
         public const string CorsPolicy = "FrontendPolicy";
 
         /// <summary>Registra todos los servicios de la API (DB, JWT, CORS, controladores, swagger, negocio).</summary>
-        public static IServiceCollection AddJaguaresApi(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddJaguaresApi(this IServiceCollection services, bool isDevelopment, IConfiguration configuration)
         {
             // Controladores. AddApplicationPart asegura que los controladores se descubran
             // aunque la API se aloje desde otro proyecto (Jaguares.Host).
@@ -39,13 +42,32 @@ namespace Jaguares.Api
             services.AddHostedService<BillingService>();
 
             // Base de datos SQL Server (hosting en monsterasp / databaseasp.net).
-            var connectionString = configuration.GetConnectionString("Default")
-                ?? throw new InvalidOperationException("Falta la cadena de conexión ConnectionStrings:Default en appsettings.");
+            var connectionString = isDevelopment
+                ? configuration.GetConnectionString("Remote") // LocalDB para desarrollo local (appsettings.Development.json).
+                : configuration.GetConnectionString("Default"); // SQL Server remoto para producción (appsettings.json).
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("No se encontró la cadena de conexión a la base de datos. Verifique la configuración en appsettings.json o variables de entorno.");
+            }
+
+            // Log de arranque: muestra a qué servidor/BD vamos a conectar (SIN exponer la contraseña).
+            try
+            {
+                var csb = new SqlConnectionStringBuilder(connectionString);
+                Console.WriteLine($"[DB] Servidor: {csb.DataSource} | Base: {csb.InitialCatalog} | Connect Timeout: {csb.ConnectTimeout}s | Encrypt: {csb.Encrypt}");
+            }
+            catch { /* si la cadena no es parseable, lo veremos al conectar */ }
+
             services.AddDbContext<AcuaticaContext>(options =>
+            {
                 options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(
                     maxRetryCount: 5,
                     maxRetryDelay: TimeSpan.FromSeconds(10),
-                    errorNumbersToAdd: null)));
+                    errorNumbersToAdd: null));
+                // Mensajes de error de EF más detallados (útil al depurar la conexión/consultas).
+                options.EnableDetailedErrors();
+            });
 
             // Autenticación JWT (Bearer): permite separar frontend y backend en distintos orígenes.
             var jwtSection = configuration.GetSection("Jwt");
@@ -92,6 +114,29 @@ namespace Jaguares.Api
         /// </summary>
         public static WebApplication UseJaguaresApi(this WebApplication app, bool serveFrontend)
         {
+            var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Jaguares.Api");
+
+            // Middleware de tiempos: registra cada petición a la API con su duración y código de estado.
+            // Así puedes ver en la consola cuánto tarda /api/Clases (suele ser la conexión a la BD remota).
+            app.Use(async (context, next) =>
+            {
+                var path = context.Request.Path.Value ?? string.Empty;
+                var esApi = path.StartsWith("/api", StringComparison.OrdinalIgnoreCase);
+                var cronometro = esApi ? Stopwatch.StartNew() : null;
+
+                if (esApi)
+                    logger.LogInformation("--> {Method} {Path}", context.Request.Method, path);
+
+                await next();
+
+                if (esApi && cronometro != null)
+                {
+                    cronometro.Stop();
+                    logger.LogInformation("<-- {Method} {Path} respondió {Status} en {Elapsed} ms",
+                        context.Request.Method, path, context.Response.StatusCode, cronometro.ElapsedMilliseconds);
+                }
+            });
+
             // Middleware global de errores (responde JSON).
             app.Use(async (context, next) =>
             {
@@ -101,6 +146,7 @@ namespace Jaguares.Api
                 }
                 catch (Exception ex)
                 {
+                    logger.LogError(ex, "Error no controlado en {Path}", context.Request.Path);
                     context.Response.StatusCode = 500;
                     context.Response.ContentType = "application/json";
                     await context.Response.WriteAsJsonAsync(new
@@ -152,14 +198,29 @@ namespace Jaguares.Api
         public static void MigrarYSembrar(WebApplication app)
         {
             using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Jaguares.Db");
             try
             {
                 var context = scope.ServiceProvider.GetRequiredService<AcuaticaContext>();
 
-                Console.WriteLine("Verificando base de datos...");
-                context.Database.Migrate();
+                // 1) Probar la conexión y medir cuánto tarda (la BD remota gratuita suele ser lenta).
+                logger.LogInformation("[DB] Probando conexión a la base de datos...");
+                var swConexion = Stopwatch.StartNew();
+                var puedeConectar = context.Database.CanConnect();
+                swConexion.Stop();
+                logger.LogInformation("[DB] CanConnect = {Ok} (tardó {Ms} ms)", puedeConectar, swConexion.ElapsedMilliseconds);
 
-                if (context.Clases.Count() < 3)
+                // 2) Aplicar migraciones pendientes.
+                logger.LogInformation("[DB] Aplicando migraciones pendientes...");
+                var swMigrar = Stopwatch.StartNew();
+                context.Database.Migrate();
+                swMigrar.Stop();
+                logger.LogInformation("[DB] Migraciones aplicadas en {Ms} ms", swMigrar.ElapsedMilliseconds);
+
+                var totalClases = context.Clases.Count();
+                logger.LogInformation("[DB] Modalidades existentes: {Count}", totalClases);
+
+                if (totalClases < 3)
                 {
                     var clasesParaAgregar = new List<Clase>
                     {
@@ -176,15 +237,12 @@ namespace Jaguares.Api
                         }
                     }
                     context.SaveChanges();
-                    Console.WriteLine("Modalidades iniciales cargadas con éxito.");
+                    logger.LogInformation("[DB] Modalidades iniciales cargadas con éxito.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("---------- ERROR CRÍTICO EN INICIO ----------");
-                Console.WriteLine(ex.Message);
-                if (ex.InnerException != null) Console.WriteLine(ex.InnerException.Message);
-                Console.WriteLine("---------------------------------------------");
+                logger.LogError(ex, "[DB] ERROR CRÍTICO EN INICIO al conectar/migrar la base de datos");
             }
         }
     }
