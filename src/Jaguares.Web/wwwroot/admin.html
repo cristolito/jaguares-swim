@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jaguares Control Panel - Administración</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <style>
+        :root {
+            --bg-dark: #070b0e;
+            --bg-card: rgba(17, 26, 34, 0.85);
+            --gold: #d4af37;
+            --water-blue: #3a8ebf;
+            --text-light: #ffffff;
+            --text-muted: #a0aec0;
+            --border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        /* Scrollbar Personalizado */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #070b0e; }
+        ::-webkit-scrollbar-thumb { 
+            background: var(--gold); 
+            border-radius: 10px;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: linear-gradient(rgba(7, 11, 14, 0.8), rgba(7, 11, 14, 0.8)), url('LOGO.PNG');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-attachment: fixed;
+            background-size: clamp(300px, 40vw, 500px);
+            color: var(--text-light);
+            padding: clamp(15px, 3vw, 40px);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .header-block { margin-bottom: 35px; }
+        .header-block h1 { color: var(--gold); font-size: 28px; margin-bottom: 5px; }
+        .header-block p { color: var(--text-muted); font-size: 14px; }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+
+        .metric-card {
+            background-color: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+        .metric-card:hover { transform: translateY(-5px); border-color: var(--gold); }
+
+        .metric-card span { display: block; color: var(--text-muted); font-size: 12px; text-transform: uppercase; margin-bottom: 8px; }
+        .metric-card h3 { font-size: 24px; font-weight: 600; }
+        .metric-card h3.highlight { color: var(--water-blue); }
+        .metric-small {
+            display: block;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-size: 12px;
+        }
+
+        .table-container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { background-color: rgba(212, 175, 55, 0.05); color: var(--gold); font-size: 13px; padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        td { padding: 14px 18px; font-size: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); color: #e2e8f0; }
+
+        .btn-whatsapp {
+            background-color: #25D366; color: #fff; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600;
+        }
+        .btn-whatsapp:hover { background-color: #20ba5a; }
+
+        .btn-pay {
+            background-color: #2563eb; color: #fff; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; margin-left: 8px;
+        }
+        .btn-pay:hover { background-color: #1d4ed8; }
+
+        .attendance-card {
+            background-color: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 22px;
+            margin-top: 20px;
+        }
+
+        .attendance-card h3 { margin-top: 0; color: var(--gold); }
+        .attendance-card .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .attendance-card label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+        .attendance-card input, .attendance-card select, .attendance-card textarea { width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.16); color: #fff; box-sizing: border-box; }
+        .attendance-card textarea { min-height: 82px; resize: vertical; }
+
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+        .btn-gold {
+            background-color: var(--gold);
+            color: #070b0e;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+        .btn-gold:hover { background-color: #f3d376; }
+
+        /* Estilos para el Modal de Edición */
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); 
+            display: none; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .modal {
+            background: var(--bg-card); border-radius: 16px; padding: 25px; 
+            width: 90%; max-width: 500px; border: 1px solid var(--border-color);
+        }
+        .modal h3 { margin: 0 0 20px 0; color: var(--gold); }
+        .modal .close { float: right; cursor: pointer; color: var(--text-muted); font-size: 20px; }
+        .modal .form-group { margin-bottom: 15px; text-align: left; }
+        .modal .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+        .modal .form-group input, .modal .form-group select, .modal .form-group textarea {
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2); color: white; box-sizing: border-box;
+        }
+        .show { display: flex !important; }
+
+        @media (max-width: 600px) {
+            .header-block { text-align: center; }
+            .header-block div { width: 100%; }
+            .btn-pay, .btn-whatsapp, .btn-gold { 
+                width: 100%; 
+                margin: 5px 0;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-block" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div>
+            <h1>Jaguares Control Panel</h1>
+            <p>Panel Privado — Administración interna de la alberca y finanzas</p>
+            <div style="margin-top: 10px; display: flex; gap: 15px;">
+                <a href="https://www.instagram.com/jaguares_swim" target="_blank" style="color: var(--gold); text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 5px;">📸 @jaguares_swim</a>
+                <a href="https://www.facebook.com/search/top?q=JAguares%20MX" target="_blank" style="color: var(--gold); text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 5px;">🔵 JAguares MX</a>
+            </div>
+        </div>
+        <button class="btn-pay" style="background:#ef4444; border:none; cursor:pointer;" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+
+    <div class="metrics-row">
+        <div class="metric-card">
+            <span>Alumnos Totales</span>
+            <h3 id="totalAlumnosCount">0</h3>
+            <span class="metric-small" id="ultimaActualizacion">Cargando...</span>
+        </div>
+        <div class="metric-card">
+            <span>Ingresos Mensuales Estimados</span>
+            <h3 id="ingresosEstimados" class="highlight">$0</h3>
+            <div style="display:flex; gap:10px; margin-top:5px;">
+                <span class="metric-small">Pagados: <b id="pagosPagadosCount">0</b></span>
+                <span class="metric-small">Pendientes: <b id="pagosPendientesCount">0</b></span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <span>Modalidades Activas</span>
+            <h3 id="modalidadesActivas">0</h3>
+        </div>
+    </div>
+
+    <div class="table-container" style="padding:20px; margin-bottom:20px;">
+        <h3 style="margin-top:0; color:var(--gold); font-size:16px;">Tendencia de Ingresos</h3>
+        <canvas id="incomeChart" style="max-height:200px;"></canvas>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px; align-items:center;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div>
+                <label for="filtroDesde" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Desde</label>
+                <input type="date" id="filtroDesde" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.16); color:#fff;" />
+            </div>
+            <div>
+                <label for="filtroHasta" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Hasta</label>
+                <input type="date" id="filtroHasta" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.16); color:#fff;" />
+            </div>
+            <div>
+                <label for="filterEstadoPago" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Estado</label>
+                <select id="filterEstadoPago" onchange="cargarPagos()" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.16); color:#fff;">
+                    <option value="">Todos</option>
+                    <option value="pendiente">Pendientes</option>
+                    <option value="pagado">Pagados</option>
+                </select>
+            </div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button class="btn-pay" style="padding:10px 16px;" onclick="exportPaymentsExcel()">Pagos Excel</button>
+            <button class="btn-pay" style="padding:10px 16px;" onclick="exportPaymentsPdf()">Pagos PDF</button>
+            <button class="btn-whatsapp" style="padding:10px 16px; background:#8b5cf6;" onclick="exportAttendanceExcel()">Asistencias Excel</button>
+            <button class="btn-whatsapp" style="padding:10px 16px; background:#8b5cf6;" onclick="exportAttendancePdf()">Asistencias PDF</button>
+        </div>
+    </div>
+
+    <h2 style="font-size: 18px; margin-bottom: 15px; color: var(--gold);">Administración de Pagos & Recordatorios</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    <th>Modalidad</th>
+                    <th>Mensualidad</th>
+                    <th>Vence</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaAlumnosBody">
+                <!-- Se cargan automático desde C# -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-note" style="margin-top: 26px;">
+        <h3 style="margin-top:0; color: var(--gold);">Resumen de asistencia reciente</h3>
+        <p id="asistenciaResumen" style="margin:0;">Cargando datos de asistencia...</p>
+    </div>
+
+    <div class="attendance-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>Registrar asistencia</h3>
+            <button class="btn-whatsapp" onclick="toggleScanner()" id="btnScanner">📸 Abrir Escáner QR</button>
+        </div>
+        
+        <div id="qr-reader-container" style="display:none; margin-bottom:20px;">
+            <div id="qr-reader" style="width:100%; max-width:400px; margin:auto; border-radius:12px; overflow:hidden;"></div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="personaTelefono">Teléfono del alumno</label>
+                <input type="tel" id="personaTelefono" placeholder="Ej. 9991234567">
+            </div>
+            <div>
+                <label for="asistenciaFecha">Fecha</label>
+                <input type="date" id="asistenciaFecha">
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label for="asistioSelect">Asistió</label>
+                <select id="asistioSelect">
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+            <div>
+                <label for="asistenciaNota">Nota</label>
+                <textarea id="asistenciaNota" placeholder="Opcional"></textarea>
+            </div>
+        </div>
+        <button class="btn-gold" style="width:auto; padding: 12px 20px;" onclick="registrarAsistencia()">Guardar asistencia</button>
+        <p id="asistenciaMessage" style="margin: 14px 0 0 0; font-size: 13px; color: #cbd5e1;"></p>
+    </div>
+
+    <div class="table-container" style="margin-top: 18px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Alumno</th>
+                    <th>Asistió</th>
+                    <th>Nota</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaAsistenciasBody">
+                <!-- Se cargan automático desde C# -->
+            </tbody>
+        </table>
+    </div>
+
+    <h2 style="font-size: 18px; margin-bottom: 15px; color: var(--gold); margin-top: 30px;">Gestión de Alumnos</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Modalidad</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaAlumnosGestionBody">
+                <!-- Cargado mediante JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <h2 style="font-size: 18px; margin-bottom: 15px; color: var(--gold); margin-top: 30px;">Configuración de Clases y Precios</h2>
+    <div class="table-container">
+        <table id="tablaClasesAdmin">
+            <thead>
+                <tr>
+                    <th>Horario / Nombre</th>
+                    <th>Costo</th>
+                    <th>Cupo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaClasesBody">
+                <!-- Se carga vía JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal para Editar Alumno -->
+    <div id="modalEditarAlumno" class="modal-backdrop">
+        <div class="modal">
+            <span class="close" onclick="cerrarModalAlumno()">✕</span>
+            <h3>Editar Alumno</h3>
+            <input type="hidden" id="editAlumnoId">
+            <div class="attendance-card" style="background:transparent; border:none; padding:0;">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="editAlumnoNombre">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="tel" id="editAlumnoTelefono">
+                </div>
+                <div class="form-group">
+                    <label>Estado del Alumno</label>
+                    <select id="editAlumnoActivo">
+                        <option value="true">Activo</option>
+                        <option value="false">Inactivo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Modalidad</label>
+                    <select id="editAlumnoClaseId">
+                        <!-- Se llena dinámicamente -->
+                    </select>
+                </div>
+                <div style="margin-top:20px;">
+                    <button class="btn-gold" onclick="guardarAlumno()" style="width:100%;">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Clase -->
+    <div id="modalEditarClase" class="modal-backdrop">
+        <div class="modal">
+            <span class="close" onclick="cerrarModalClase()">✕</span>
+            <h3>Editar Modalidad / Clase</h3>
+            <input type="hidden" id="editClaseId">
+            <div class="form-group">
+                <label>Nombre / Horario de la Modalidad</label>
+                <input type="text" id="editClaseHorario">
+            </div>
+            <div class="form-group">
+                <label>Costo Mensual ($)</label>
+                <input type="number" id="editClaseCosto">
+            </div>
+            <div class="form-group">
+                <label>Cupo Máximo</label>
+                <input type="number" id="editClaseCupo">
+            </div>
+            <div class="form-group">
+                <label>Nivel</label>
+                <select id="editClaseNivel">
+                    <option value="Principiante">Principiante</option>
+                    <option value="Intermedio">Intermedio</option>
+                    <option value="Avanzado">Avanzado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Descripción / Detalles</label>
+                <textarea id="editClaseDescripcion"></textarea>
+            </div>
+            <div style="margin-top:20px;">
+                <button class="btn-gold" onclick="guardarClase()" style="width:100%;">Guardar Clase</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Guard de sesión: si no hay token de administrador, volvemos al login.
+        if (!JaguaresApi.getToken()) {
+            window.location.href = '/admin-login.html';
+        }
+
+        // Chart instance holder
+        let incomeChartInstance = null;
+        let listaAlumnosLocal = [];
+        let listaClasesLocal = [];
+
+        const pagosApiUrl = '/api/Pagos';
+        const asistenciasApiUrl = '/api/Asistencias';
+        const alumnoConsultaUrl = '/api/Alumnos/consulta';
+        const alumnosApiUrl = '/api/Alumnos';
+
+        async function downloadReport(url, filename) {
+            try {
+                const respuesta = await apiFetch(url);
+                if (respuesta.status === 401) {
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                if (!respuesta.ok) {
+                    console.error('Error descargando reporte:', respuesta.statusText);
+                    return;
+                }
+
+                const blob = await respuesta.blob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.setAttribute('download', filename);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            } catch (error) {
+                console.error('Error descargando reporte:', error);
+            }
+        }
+
+        function buildDateQuery() {
+            const desde = document.getElementById('filtroDesde').value;
+            const hasta = document.getElementById('filtroHasta').value;
+            const params = new URLSearchParams();
+            if (desde) params.append('desde', desde);
+            if (hasta) params.append('hasta', hasta);
+            return params.toString();
+        }
+
+        function exportPaymentsExcel() {
+            const query = buildFilterQuery();
+            downloadReport(`/api/reports/pagos/excel${query ? `?${query}` : ''}`, 'reportes_pagos.csv');
+        }
+
+        async function exportPaymentsPdf() {
+            const query = buildFilterQuery();
+            try {
+                const respuesta = await apiFetch(`${pagosApiUrl}${query ? `?${query}` : ''}`);
+                if (respuesta.status === 401) { window.location.href = '/admin-login.html'; return; }
+                const pagos = await respuesta.json();
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.text("Reporte de Pagos - Jaguares Swim", 14, 20);
+                doc.setFontSize(10);
+                doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 28);
+
+                // Función para limpiar texto de caracteres no compatibles con fuentes estándar de PDF
+                const clean = (str) => (str || '')
+                    .replace(/\u2013/g, '-') // Cambiar guion largo por guion estándar
+                    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '') // Eliminar emojis y caracteres no latinos
+                    .replace(/\s+/g, ' ').trim();
+
+                const tableData = pagos.map(p => [
+                    clean(p.nombreCompleto),
+                    clean(p.modalidad),
+                    `$${p.monto}`,
+                    new Date(p.fechaVencimiento).toLocaleDateString('es-MX'),
+                    p.estaPagado ? "Pagado" : "Pendiente"
+                ]);
+
+                doc.autoTable({
+                    head: [['Alumno', 'Modalidad', 'Monto', 'Vencimiento', 'Estado']],
+                    body: tableData,
+                    startY: 35,
+                    theme: 'grid',
+                    headStyles: { fillColor: [212, 175, 55] }
+                });
+
+                doc.save(`pagos_jaguares_${new Date().getTime()}.pdf`);
+            } catch (error) {
+                console.error('Error generando PDF:', error);
+                alert('No se pudo generar el PDF. Revisa la consola.');
+            }
+        }
+
+        function exportAttendanceExcel() {
+            const query = buildFilterQuery();
+            downloadReport(`/api/reports/asistencias/excel${query ? `?${query}` : ''}`, 'reportes_asistencias.csv');
+        }
+
+        async function exportAttendancePdf() {
+            const query = buildFilterQuery();
+            try {
+                const respuesta = await apiFetch(`${asistenciasApiUrl}${query ? `?${query}` : ''}`);
+                if (respuesta.status === 401) { window.location.href = '/admin-login.html'; return; }
+                const asistencias = await respuesta.json();
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(18);
+                doc.text("Reporte de Asistencias - Jaguares Swim", 14, 20);
+                doc.setFontSize(10);
+                doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 28);
+
+                // Función para limpiar texto de caracteres no compatibles con fuentes estándar de PDF
+                const clean = (str) => (str || '')
+                    .replace(/\u2013/g, '-')
+                    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '')
+                    .replace(/\s+/g, ' ').trim();
+
+                const tableData = asistencias.map(a => [
+                    new Date(a.fecha).toLocaleDateString('es-MX'),
+                    clean(a.nombreCompleto),
+                    a.asistio ? "SI" : "NO",
+                    clean(a.nota || "-")
+                ]);
+
+                doc.autoTable({
+                    head: [['Fecha', 'Alumno', 'Asistió', 'Nota']],
+                    body: tableData,
+                    startY: 35,
+                    theme: 'grid',
+                    headStyles: { fillColor: [58, 142, 191] }
+                });
+
+                doc.save(`asistencias_jaguares_${new Date().getTime()}.pdf`);
+            } catch (error) {
+                console.error('Error generando PDF:', error);
+                alert('No se pudo generar el PDF. Revisa la consola.');
+            }
+        }
+
+        function buildFilterQuery() {
+            const estado = document.getElementById('filterEstadoPago').value;
+            const desde = document.getElementById('filtroDesde').value;
+            const hasta = document.getElementById('filtroHasta').value;
+            const params = new URLSearchParams();
+            if (estado) params.append('estado', estado);
+            if (desde) params.append('desde', desde);
+            if (hasta) params.append('hasta', hasta);
+            return params.toString();
+        }
+
+        function animateNumber(id, target) {
+            const el = document.getElementById(id);
+            let current = 0;
+            const increment = target / 30; // 30 pasos para la animación
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    el.innerText = target.toLocaleString();
+                    clearInterval(timer);
+                } else {
+                    el.innerText = Math.floor(current).toLocaleString();
+                }
+            }, 20);
+        }
+
+        async function cargarPagos() {
+            try {
+                const query = buildFilterQuery();
+                const cacheBuster = `cb=${new Date().getTime()}`;
+                const fullQuery = query ? `${query}&${cacheBuster}` : `?${cacheBuster}`;
+                const respuesta = await apiFetch(`${pagosApiUrl}${fullQuery}`);
+                if (respuesta.status === 401) {
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                const pagos = await respuesta.json();
+                const tbody = document.getElementById('tablaAlumnosBody');
+                tbody.innerHTML = '';
+
+                let ingresos = 0;
+                let pagosPagados = 0;
+                let pendientes = 0;
+                const modalidades = new Set();
+
+                pagos.forEach(pago => {
+                    ingresos += pago.monto ?? 0;
+                    modalidades.add(pago.modalidad || 'Sin modalidad');
+                    if (pago.estaPagado) pagosPagados++;
+                    else pendientes++;
+
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${pago.nombreCompleto}</td>
+                        <td>${pago.modalidad}</td>
+                        <td>$${(pago.monto ?? 0).toFixed(0)}</td>
+                        <td>${new Date(pago.fechaVencimiento).toLocaleDateString('es-MX')}</td>
+                        <td>${pago.estaPagado ? '<span class="status-badge" style="background-color: rgba(16, 185, 129, 0.16); color: #10b981;">Pagado</span>' : '<span class="status-badge">Pendiente</span>'}</td>
+                        <td>
+                            <button class="btn-whatsapp" onclick="enviarRecordatorioPago('${pago.nombreCompleto}', '${pago.telefono}', ${pago.monto})">📲 Recordar</button>
+                            ${pago.estaPagado ? '' : `<button class="btn-pay" onclick="marcarPagado(${pago.id})">Marcar pagado</button>`}
+                            ${pago.comprobanteUrl ? `<a href="${JaguaresApi.url(pago.comprobanteUrl)}" target="_blank" class="btn-pay" style="background:#64748b; text-decoration:none;">Ver Recibo</a>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(fila);
+                });
+
+                animateNumber('totalAlumnosCount', pagos.length);
+                document.getElementById('ingresosEstimados').innerText = `$${ingresos.toLocaleString()}`;
+                document.getElementById('modalidadesActivas').innerText = modalidades.size;
+                document.getElementById('pagosPagadosCount').innerText = pagosPagados;
+                document.getElementById('pagosPendientesCount').innerText = pendientes;
+                document.getElementById('ultimaActualizacion').innerText = new Date().toLocaleString('es-MX');
+
+                // Construir datos de tendencia de ingresos (últimos 6 meses)
+                try {
+                    // Determinar el mes final según los pagos (si hay pagos en meses futuros)
+                    let maxDate = new Date();
+                    pagos.forEach(p => {
+                        if (p.fechaVencimiento) {
+                            const d = new Date(p.fechaVencimiento);
+                            if (d > maxDate) maxDate = d;
+                        }
+                    });
+                    const months = [];
+                    for (let i = 5; i >= 0; i--) {
+                        const d = new Date(maxDate.getFullYear(), maxDate.getMonth() - i, 1);
+                        const label = d.toLocaleString('es-MX', { month: 'short', year: 'numeric' });
+                        months.push({ key: `${d.getFullYear()}-${d.getMonth() + 1}`, label, date: d });
+                    }
+
+                    const sums = months.map(m => 0);
+                    pagos.forEach(p => {
+                        const fecha = p.fechaVencimiento ? new Date(p.fechaVencimiento) : null;
+                        if (!fecha) return;
+                        const key = `${fecha.getFullYear()}-${fecha.getMonth() + 1}`;
+                        const idx = months.findIndex(m => m.key === key);
+                        if (idx >= 0) {
+                            sums[idx] += Number(p.monto ?? 0);
+                        }
+                    });
+
+                    const ctx = document.getElementById('incomeChart').getContext('2d');
+                    if (incomeChartInstance) {
+                        incomeChartInstance.destroy();
+                    }
+                    incomeChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: months.map(m => m.label),
+                            datasets: [{
+                                label: 'Ingresos MXN',
+                                data: sums,
+                                borderColor: '#3a8ebf',
+                                backgroundColor: 'rgba(58,142,191,0.2)',
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                } catch (chartErr) {
+                    console.error('Error construyendo gráfica de ingresos:', chartErr);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function cargarAsistencias() {
+            try {
+                const query = buildFilterQuery();
+                const cacheBuster = `cb=${new Date().getTime()}`;
+                const fullQuery = query ? `${query}&${cacheBuster}` : `?${cacheBuster}`;
+                const respuesta = await apiFetch(`${asistenciasApiUrl}${fullQuery}`);
+                if (respuesta.status === 401) {
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                const asistencias = await respuesta.json();
+                const tbody = document.getElementById('tablaAsistenciasBody');
+                const resumen = document.getElementById('asistenciaResumen');
+                tbody.innerHTML = '';
+
+                const total = asistencias.length;
+                const asistidos = asistencias.filter(a => a.asistio).length;
+                const faltas = total - asistidos;
+                resumen.innerText = `Últimos ${total} registros de asistencia: ${asistidos} asistencias y ${faltas} faltas.`;
+
+                asistencias.forEach(asistencia => {
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${new Date(asistencia.fecha).toLocaleDateString('es-MX')}</td>
+                        <td>${asistencia.nombreCompleto}</td>
+                        <td>${asistencia.asistio ? '✅ Sí' : '❌ No'}</td>
+                        <td>${asistencia.nota || '-'}</td>
+                        <td>
+                            <button class="btn-whatsapp" style="background:#3a8ebf;" onclick="enviarAvisoAsistencia('${asistencia.nombreCompleto}', '${asistencia.telefono}', '${new Date(asistencia.fecha).toLocaleDateString()}', ${asistencia.asistio})">📲 Avisar</button>
+                            <button class="btn-pay" style="background:#ef4444; margin-left:5px;" onclick="eliminarAsistencia(${asistencia.id})">🗑️ Borrar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(fila);
+                });
+            } catch (error) {
+                console.error('Error cargando asistencias:', error);
+            }
+        }
+
+        // Cargar todas las modalidades desde la API y actualizar el contador
+        async function cargarModalidades() {
+            try {
+                const respuesta = await apiFetch('/api/Clases');
+                if (respuesta.status === 401) {
+                    // no debería pasar, pero por si acaso
+                    document.getElementById('modalidadesActivas').innerText = '0';
+                    return;
+                }
+                const clases = await respuesta.json();
+                document.getElementById('modalidadesActivas').innerText = Array.isArray(clases) ? clases.length : 0;
+            } catch (error) {
+                console.error('Error cargando modalidades:', error);
+                document.getElementById('modalidadesActivas').innerText = '0';
+            }
+        }
+
+        // Lógica del Escáner QR
+        let html5QrcodeScanner = null;
+        function toggleScanner() {
+            const container = document.getElementById('qr-reader-container');
+            const btn = document.getElementById('btnScanner');
+            
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                btn.textContent = 'Cerrar Escáner';
+                btn.style.background = '#ef4444';
+                
+                html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+                html5QrcodeScanner.render((decodedText) => {
+                    // El QR del alumno será su número de teléfono
+                    document.getElementById('personaTelefono').value = decodedText;
+                    html5QrcodeScanner.clear();
+                    toggleScanner();
+                    registrarAsistencia();
+                });
+            } else {
+                container.style.display = 'none';
+                btn.textContent = 'Abrir Escáner QR';
+                btn.style.background = '#25D366';
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }
+            }
+        }
+
+        async function registrarAsistencia() {
+            const telefono = document.getElementById('personaTelefono').value.trim();
+            const fecha = document.getElementById('asistenciaFecha').value;
+            const asistio = document.getElementById('asistioSelect').value === 'true';
+            const nota = document.getElementById('asistenciaNota').value.trim();
+            const messageEl = document.getElementById('asistenciaMessage');
+            const telefonoValido = /^[0-9]{10}$/.test(telefono);
+
+            messageEl.textContent = '';
+            if (!telefono) {
+                messageEl.textContent = 'Ingresa el teléfono del alumno.';
+                return;
+            }
+            if (!telefonoValido) {
+                messageEl.textContent = 'Ingresa un teléfono válido de 10 dígitos.';
+                return;
+            }
+
+            try {
+                const respuestaAlumno = await apiFetch(`${alumnoConsultaUrl}?telefono=${encodeURIComponent(telefono)}`);
+                if (respuestaAlumno.status === 401) {
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                if (!respuestaAlumno.ok) {
+                    messageEl.textContent = 'Alumno no encontrado. Verifica el teléfono.';
+                    return;
+                }
+
+                const alumnoData = await respuestaAlumno.json();
+                const asistenciaBody = {
+                    alumnoId: alumnoData.id || null,
+                    fecha: fecha ? `${fecha}T00:00:00Z` : new Date().toISOString(),
+                    asistio,
+                    nota
+                };
+
+                const respuestaAsistencia = await apiFetch(asistenciasApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(asistenciaBody)
+                });
+
+                if (respuestaAsistencia.status === 401) {
+                    // No autenticado como admin: redirigir al login
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+
+                if (!respuestaAsistencia.ok) {
+                    const texto = await respuestaAsistencia.text();
+                    messageEl.textContent = `Error guardando asistencia: ${texto}`;
+                    return;
+                }
+
+                messageEl.textContent = 'Asistencia registrada correctamente.';
+                document.getElementById('asistenciaNota').value = '';
+                await cargarAsistencias();
+            } catch (error) {
+                console.error('Error registrando asistencia:', error);
+                messageEl.textContent = 'Error guardando asistencia. Revisa la consola.';
+            }
+        }
+
+        async function cargarAlumnos() {
+            try {
+                const respuesta = await apiFetch(`${alumnosApiUrl}?cb=${new Date().getTime()}`);
+                if (respuesta.status === 401) {
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                const alumnos = await respuesta.json();
+                listaAlumnosLocal = alumnos; // Guardamos para editar después
+                const tbody = document.getElementById('tablaAlumnosGestionBody');
+                tbody.innerHTML = '';
+
+                alumnos.forEach(alumno => {
+                    let estadoHtml = '';
+                    if (!alumno.activo) {
+                        estadoHtml = '<span style="color:#ef4444; font-weight:bold;">Inactivo</span>';
+                    } else if (!alumno.ultimoPagoPagado) {
+                        estadoHtml = '<span style="color:#f59e0b; font-weight:bold;">Pendiente</span>';
+                    } else {
+                        estadoHtml = '<span style="color:#10b981; font-weight:bold;">Activo</span>';
+                    }
+
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${alumno.nombreCompleto}</td>
+                        <td>${alumno.telefono}</td>
+                        <td>${alumno.modalidadElegida}</td>
+                        <td>${estadoHtml}</td>
+                        <td>
+                            <div style="display:flex; gap:5px;">
+                                <button class="btn-whatsapp" style="background:#d4af37; color:#000;" onclick="enviarBienvenida('${alumno.nombreCompleto}', '${alumno.telefono}', '${alumno.modalidadElegida}')">👋 Bienvenida</button>
+                                <button class="btn-pay" style="background:#ef4444;" onclick="eliminarAlumno(${alumno.id})">🗑️ Eliminar</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(fila);
+                });
+            } catch (error) {
+                console.error('Error cargando alumnos:', error);
+            }
+        }
+
+        async function cargarClasesAdmin() {
+            try {
+                const respuesta = await apiFetch('/api/Clases');
+                const clases = await respuesta.json();
+                listaClasesLocal = clases; // Guardamos para el selector de edición
+                const tbody = document.getElementById('tablaClasesBody');
+                tbody.innerHTML = '';
+
+                clases.forEach(clase => {
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${clase.horario}</td>
+                        <td>$${clase.costo}</td>
+                        <td>${clase.cupoMaximo}</td>
+                        <td>
+                            <button class="btn-pay" style="background:var(--water-blue);" onclick="abrirEditarClase(${clase.id ?? clase.Id})">Editar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(fila);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+
+        // Funciones para Editar Clase
+        function abrirEditarClase(id) {
+            const clase = listaClasesLocal.find(c => (c.id || c.Id) == id);
+            if (!clase) return;
+
+            document.getElementById('editClaseId').value = clase.id || clase.Id;
+            document.getElementById('editClaseHorario').value = clase.horario || clase.Horario;
+            document.getElementById('editClaseCosto').value = clase.costo || clase.Costo;
+            document.getElementById('editClaseCupo').value = clase.cupoMaximo || clase.CupoMaximo;
+            document.getElementById('editClaseNivel').value = clase.nivel || clase.Nivel;
+            document.getElementById('editClaseDescripcion').value = clase.descripcion || clase.Descripcion;
+
+            document.getElementById('modalEditarClase').classList.add('show');
+        }
+
+        function cerrarModalClase() {
+            document.getElementById('modalEditarClase').classList.remove('show');
+        }
+
+        async function guardarClase() {
+            const id = document.getElementById('editClaseId').value;
+            Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+            
+            const datos = {
+                Id: parseInt(id),
+                Horario: document.getElementById('editClaseHorario').value,
+                Costo: parseFloat(document.getElementById('editClaseCosto').value),
+                CupoMaximo: parseInt(document.getElementById('editClaseCupo').value),
+                Nivel: document.getElementById('editClaseNivel').value,
+                Descripcion: document.getElementById('editClaseDescripcion').value
+            };
+
+            try {
+                const res = await apiFetch(`/api/Clases/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos)
+                });
+
+                if (res.ok) {
+                    cerrarModalClase();
+                    await cargarClasesAdmin();
+                    await cargarModalidades();
+                    await cargarPagos();
+                    Swal.fire('Actualizado', 'Modalidad actualizada con éxito.', 'success');
+                } else {
+                    const err = await res.text();
+                    Swal.fire('Error', err, 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Error de conexión.');
+            }
+        }
+
+        // WhatsApp: Mensaje de Bienvenida
+        function enviarBienvenida(nombre, telefono, modalidad) {
+            const portalUrl = window.location.origin + "/alumno.html";
+            const mensaje = `¡Hola *${nombre}*! 👋 Bienvenido(a) a *Jaguares Swim* 🐆. \n\nEstamos muy felices de tenerte con nosotros entrenando en la modalidad de *${modalidad}*. \n\nYa puedes acceder a tu portal de alumno para consultar tus pagos y asistencias aquí: \n🔗 ${portalUrl} \n\n¡Nos vemos en la alberca! 🏊‍♂️`;
+            window.open(`https://wa.me/52${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
+        }
+
+        // WhatsApp: Recordatorio de Pago
+        function enviarRecordatorioPago(nombre, telefono, monto) {
+            const portalUrl = window.location.origin + "/alumno.html";
+            const mensaje = `Hola *${nombre}*, te saludamos de *Jaguares Swim* 🐆. Te recordamos que tu mensualidad de *$${monto} MXN* está pendiente. \n\nPuedes subir tu comprobante de pago entrando a tu portal: \n🔗 ${portalUrl} \n\n¡Gracias!`;
+            window.open(`https://wa.me/52${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
+        }
+
+        // WhatsApp: Confirmación de Asistencia
+        function enviarAvisoAsistencia(nombre, telefono, fecha, asistio) {
+            const status = asistio ? "se ha registrado correctamente ✅" : "no se registró (falta) ❌";
+            const mensaje = `Hola *${nombre}*, te informamos que tu asistencia del día *${fecha}* ${status} en *Jaguares Swim* 🐆. \n\n¡Sigue entrenando duro!`;
+            window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
+        }
+
+        async function eliminarAlumno(id) {
+            const result = await Swal.fire({
+                title: '¿Eliminar alumno?',
+                text: "Se borrarán sus datos permanentemente. Esta acción no se puede deshacer.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                const respuesta = await apiFetch(`${alumnosApiUrl}/${id}`, { method: 'DELETE' });
+                if (respuesta.ok) {
+                    Swal.fire('¡Borrado!', 'El alumno ha sido eliminado del sistema.', 'success');
+                    await cargarAlumnos();
+                    await cargarPagos();
+                } else {
+                    const msg = await respuesta.text();
+                    Swal.fire('Error', msg || 'No se pudo eliminar.', 'error');
+                }
+            } catch (error) {
+                console.error('Error eliminando alumno:', error);
+                Swal.fire('Error', 'Error de conexión con el servidor.', 'error');
+            }
+        }
+
+        async function marcarPagado(id) {
+            const result = await Swal.fire({
+                title: '¿Confirmar pago?',
+                text: "Se notificará al alumno por WhatsApp.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d4af37',
+                confirmButtonText: 'Sí, confirmar'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                const respuesta = await apiFetch(`${pagosApiUrl}/${id}/marcar-pagado`, { method: 'PUT' });
+                if (respuesta.ok) {
+                    Swal.fire('¡Pagado!', 'El estatus se ha actualizado.', 'success');
+                    await cargarPagos();
+                    await cargarAlumnos();
+                }
+            } catch (error) {
+                console.error('Error marcando pago:', error);
+            }
+        }
+
+        async function eliminarAsistencia(id) {
+            const result = await Swal.fire({
+                title: '¿Borrar asistencia?',
+                text: "Esta acción no se puede deshacer.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Sí, borrar'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                const respuesta = await apiFetch(`${asistenciasApiUrl}/${id}`, { method: 'DELETE' });
+                if (respuesta.status === 401) {
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                
+                if (respuesta.ok) {
+                    Swal.fire('Eliminado', 'Registro borrado.', 'success');
+                    await cargarAsistencias();
+                } else {
+                    const msg = await respuesta.text();
+                    Swal.fire('Error', msg, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function cerrarSesion() {
+            try {
+                await apiFetch('/api/Admin/logout', { method: 'POST' });
+            } catch (error) {
+                console.error('Error cerrando sesión:', error);
+            }
+            JaguaresApi.clearToken();
+            window.location.href = '/admin-login.html';
+        }
+
+        cargarPagos();
+        cargarAsistencias();
+        cargarAlumnos();
+        cargarModalidades();
+        cargarClasesAdmin();
+    </script>
+</body>
+</html>

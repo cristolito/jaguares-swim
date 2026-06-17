@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Gestionamos el frontend como contenido copiado (no por el pipeline de static web assets). -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jaguares.Api\Jaguares.Api.csproj" />
+  </ItemGroup>
+
+  <!--
+    La API (proyecto referenciado) trae sus propios appsettings*.json. Al publicar el Host
+    chocarían con los del Host (misma ruta) -> error NETSDK1152. El Host usa SU propio appsettings,
+    así que descartamos del publish los appsettings que provienen del proyecto Jaguares.Api.
+  -->
+  <Target Name="QuitarAppSettingsDeLaApi" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="$([System.String]::Copy('%(ResolvedFileToPublish.FullPath)').Replace('\','/').Contains('/Jaguares.Api/')) AND $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('appsettings'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Frontend del host combinado.
+    Fuente de verdad del sitio: Jaguares.Web/wwwroot (así Jaguares.Web sigue sirviendo igual por su cuenta).
+    Copiamos todos esos archivos a la carpeta de salida bajo wwwroot, EXCEPTO config.js,
+    y usamos nuestro propio config.js (API en el mismo origen). Todo va por el mismo mecanismo
+    (contenido copiado) para que funcione idéntico en local y publicado.
+  -->
+  <ItemGroup>
+    <Content Include="..\Jaguares.Web\wwwroot\**\*" Exclude="..\Jaguares.Web\wwwroot\config.js">
+      <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="frontend\config.js">
+      <Link>wwwroot\config.js</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

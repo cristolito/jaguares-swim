@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jaguares Swimming - Horarios y Mensualidades</title>
+    <!-- Meta tags para PWA (App en móvil) -->
+    <meta name="theme-color" content="#071116">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="LOGO.PNG">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <style>
+        :root {
+            --gold: #d4af37;
+            --gold-hover: #f3cf5c;
+            --water-blue: #3a8ebf;
+            --text-light: #ffffff;
+            --text-dark: #1c1c1e;
+            --text-muted: #cbd5e1;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        /* Scrollbar Personalizado */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #070b0e; }
+        ::-webkit-scrollbar-thumb { 
+            background: var(--gold); 
+            border-radius: 10px;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gold-hover); }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-light);
+            display: flex;
+            justify-content: flex-start;
+            align-items: stretch;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(rgba(7, 11, 14, 0.6), rgba(7, 11, 14, 0.85)), 
+                        url('LOGO.JPG') no-repeat center top fixed;
+            background-size: cover;
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 36px;
+            z-index: 10;
+        }
+
+        /* SECCIONES: Información, Clases y Formulario (apiladas) */
+        .section {
+            background: rgba(7,11,14,0.18);
+            padding: 22px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            color: var(--gold);
+            font-size: 42px;
+            font-weight: 800;
+            margin: 0 0 6px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header-title p {
+            font-size: 15px;
+            color: var(--text-muted);
+            margin: 0 0 20px 0;
+            line-height: 1.4;
+        }
+
+        .badge-beach {
+            background-color: rgba(58, 142, 191, 0.2);
+            border: 1px solid var(--water-blue);
+            color: #79bce4;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .price-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 18px 20px;
+            color: var(--text-dark);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: block;
+            border: 1px solid transparent;
+        }
+
+        .price-card:hover { transform: translateY(-10px); border-color: var(--gold); box-shadow: 0 15px 30px rgba(212, 175, 55, 0.2); }
+        .price-card h3 { margin: 0; font-size: 16px; font-weight: 700; color: #070b0e; }
+        .price-card .price { font-size: 26px; font-weight: 800; color: var(--water-blue); margin: 4px 0; }
+        .price-card p { font-size: 13px; color: #515154; margin: 0; line-height: 1.4; }
+
+        .classes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-top: 10px;
+        }
+
+        /* Formulario centrado y en su propia sección */
+        .form-section {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .form-card {
+            background-color: rgba(17, 26, 34, 0.5);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 20px;
+            padding: 35px;
+            width: 100%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        .form-group { margin-bottom: 22px; }
+        .form-group label { 
+            display: block; font-size: 11px; color: var(--gold); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.5px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%; background-color: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 13px; color: var(--text-light); font-size: 14px; box-sizing: border-box;
+        }
+        .form-message {
+            margin-top: 12px;
+            color: #a7f3d0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .form-message.error {
+            color: #fecaca;
+        }
+        
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--gold); }
+        .form-group select option { background-color: #111a22; color: white; }
+
+        .btn-gold {
+            background-color: var(--gold); color: #070b0e; padding: 15px; font-size: 15px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; width: 100%; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;
+        }
+        .btn-gold:hover { background-color: var(--gold-hover); }
+
+        /* Modal simple */
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .modal {
+            background: #071116; border-radius: 10px; padding: 20px; width: 90%; max-width: 720px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); border: 1px solid rgba(212,175,55,0.12);
+        }
+        .modal h3 { margin:0 0 10px 0; color: var(--gold); }
+        .modal .close { float: right; cursor: pointer; color: #fff; opacity:0.8 }
+        .modal .clase-row { padding:10px 0; border-bottom:1px dashed rgba(255,255,255,0.04); }
+        .show { display: flex !important; }
+
+        .page-shell {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            position: relative;
+        }
+
+        .hero {
+            padding: 40px 30px;
+            border-radius: 24px;
+            background: rgba(4, 9, 15, 0.72);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .hero-nav {
+            display: flex;
+            justify-content: flex-end;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .hero-nav a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 13px;
+            letter-spacing: 0.6px;
+            transition: color 0.2s ease;
+        }
+
+        .hero-nav a:hover { color: var(--gold); }
+
+        .hero-content {
+            display: grid;
+            gap: 20px;
+        }
+
+        .hero-content h1 {
+            font-size: clamp(42px, 5vw, 64px);
+            line-height: 1.05;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+
+        .hero-content p {
+            max-width: 720px;
+            color: var(--text-muted);
+            font-size: 16px;
+            line-height: 1.8;
+            margin: 0;
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(212, 175, 55, 0.14);
+            color: var(--gold);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-top: 0;
+            border: 1px solid rgba(212, 175, 55, 0.24);
+            max-width: fit-content;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-light);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            padding: 14px 22px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover { background: rgba(212, 175, 55, 0.12); transform: scale(1.02); }
+
+        /* Animación de Rasguño */
+        .scratch-wrap {
+            position: fixed; inset: 0; z-index: 10005;
+            display: none; align-items: center; justify-content: center;
+            pointer-events: none; background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+        }
+        .scratch-svg { 
+            width: clamp(600px, 100vw, 1200px); 
+            filter: url(#jaguar-ultra-real-filter);
+            transform: rotate(-5deg);
+        }
+        .claw-path {
+            fill: none; 
+            stroke: url(#shred-gradient);
+            stroke-width: 38; 
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 1800; 
+            stroke-dashoffset: 1800;
+            opacity: 1;
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));
+        }
+        
+        .slash-active .claw-path { 
+            animation: drawClaw 0.3s cubic-bezier(0.1, 0, 0.1, 1) forwards; 
+        }
+        .slash-active { 
+            display: flex; 
+            animation: fadeScratch 2.5s ease-in forwards, screenShake 0.5s cubic-bezier(.36,.07,.19,.97) both; 
+        }
+
+        @keyframes drawClaw {
+            to { stroke-dashoffset: 0; }
+        }
+        @keyframes fadeScratch {
+            0% { opacity: 0; transform: scale(1.1) rotate(-5deg); }
+            4% { opacity: 1; transform: scale(1) rotate(0deg); }
+            85% { opacity: 1; filter: saturate(1.2) brightness(1.2); }
+            100% { opacity: 0; }
+        }
+        @keyframes screenShake {
+            10%, 90% { transform: translate3d(-2px, -1px, 0); }
+            20%, 80% { transform: translate3d(4px, 2px, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, -3px, 0); }
+            40%, 60% { transform: translate3d(6px, 3px, 0); }
+        }
+
+        .whatsapp-float {
+            position: fixed; bottom: 30px; right: 30px; background: #25d366; color: white;
+            width: 60px; height: 60px; border-radius: 50px; display: flex; align-items: center; justify-content: center;
+            font-size: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .whatsapp-float:hover { transform: scale(1.1) rotate(5deg); }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: 0.6px;
+            color: var(--gold);
+        }
+
+        .social-link-item {
+            color: white; text-decoration: none; padding: 10px 20px; border-radius: 30px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;
+        }
+        .social-link-item:hover { background: var(--gold); color: #000; transform: translateY(-3px); }
+
+        .section-content {
+            display: grid;
+            gap: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.04);
+            padding: 22px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .info-card h3 { margin: 0 0 10px 0; color: #ffffff; font-size: 16px; }
+        .info-card p { margin: 0; color: var(--text-muted); line-height: 1.75; }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .gallery-item {
+            min-height: 190px;
+            border-radius: 18px;
+            overflow: hidden;
+            position: relative;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.06);
+            background-size: cover;
+            background-position: center center;
+        }
+
+        .gallery-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(7,11,14,0.08), rgba(7,11,14,0.7));
+            z-index: 0;
+        }
+
+        .gallery-item span {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            color: #fff;
+            font-size: 13px;
+            z-index: 2;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+            gap: 24px;
+        }
+
+        .contact-card {
+            background: rgba(4,9,15,0.85);
+            border-radius: 18px;
+            padding: 26px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .contact-card h3 { margin-top: 0; color: var(--gold); }
+        .contact-card p { color: var(--text-muted); line-height: 1.8; }
+
+        .section-note {
+            background: rgba(255,255,255,0.05);
+            border-radius: 14px;
+            padding: 18px;
+            border: 1px solid rgba(255,255,255,0.06);
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px 0;
+        }
+
+        @media (max-width: 1024px) {
+            .info-grid, .contact-grid, .gallery-grid { grid-template-columns: 1fr; }
+            .hero-nav { justify-content: center; }
+        }
+
+        @media (max-width: 680px) {
+            body { padding: 20px; }
+            .hero { padding: 28px 18px; }
+            .hero-buttons { flex-direction: column; align-items: stretch; }
+            .btn-gold, .btn-secondary { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <nav class="hero-nav">
+                <a href="#about">Sobre</a>
+                <a href="#programas">Programas</a>
+                <a href="#estructura">Estructura</a>
+                <a href="#entrenador">Entrenador</a>
+                <a href="#galeria">Galería</a>
+                <a href="#registro">Registro</a>
+                <a href="alumno.html">Portal Alumno</a>
+                <a href="admin.html">Panel Admin</a>
+            </nav>
+
+            <div class="hero-content">
+                <h1>Jaguares Swim</h1>
+                <p>La escuela de natación para adultos que combina fuerza, movilidad y técnica en el agua. Entrena con profesionales, mejora tu resistencia y disfruta un entrenamiento completo diseñado para todos los niveles.</p>
+                <div class="hero-buttons">
+                    <a href="#programas" class="btn-gold">Ver Modalidades</a>
+                    <a href="#registro" class="btn-secondary">Inscribirme</a>
+                </div>
+                <div class="badge">🏖️ Entrenamientos en la playa: 2 veces al mes. ¡Tus primeras 2 clases de cortesía son gratis!</div>
+            </div>
+        </header>
+
+        <main class="main-wrapper">
+            <section id="about" class="section">
+                <div class="section-header">
+                    <h2>Sobre Jaguares Swim</h2>
+                </div>
+                <div class="section-content info-grid">
+                    <div class="info-card">
+                        <h3>Nuestra historia</h3>
+                        <p>Fundada con la pasión por el alto rendimiento, Jaguares Swim nació para ofrecer entrenamientos de natación adaptados a adultos que buscan mejorar su condición física y técnica. Lo que comenzó como un grupo pequeño en la costa, hoy es una comunidad de nadadores comprometidos con la excelencia.</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Nuestra misión</h3>
+                        <p>Nuestra misión es transformar la vida de nuestros alumnos a través de la natación integral, combinando el fortalecimiento físico en tierra con la eficiencia técnica en el agua, fomentando la salud y la disciplina en un ambiente motivador.</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>¿Dónde estamos?</h3>
+                        <p>📍 <strong>Instalaciones:</strong> Acuática Tritones, Calle 24 500E, C. 57 y 57A-x, Esperanza, 97169 Mérida, Yuc.<br>
+                        Horarios de atención: Lunes a Viernes de 6:00 AM a 9:00 PM.</p>
+                        <div style="margin-top:15px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3727.1264353805876!2d-89.58985108453444!3d20.970343086034177!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8f56715f335031b9%3A0xc3e13d5336338b8!2sAcu%C3%A1tica%20Tritones!5e0!3m2!1ses-419!2smx!4v1739912000000!5m2!1ses-419!2smx" width="100%" height="150" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                        </div>
+                    </div>
+                </div>
+                <!-- Redes Sociales Agregadas -->
+                <div style="margin-top: 40px; text-align: center;">
+                    <p style="color: var(--gold); font-weight: bold; text-transform: uppercase; font-size: 12px; letter-spacing: 2px;">Únete a nuestra comunidad</p>
+                    <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px;">
+                        <a href="https://www.instagram.com/jaguares_swim" target="_blank" class="social-link-item">📸 Instagram</a>
+                        <a href="https://www.facebook.com/search/top?q=JAguares%20MX" target="_blank" class="social-link-item">🔵 Facebook</a>
+                    </div>
+                </div>
+            </section>
+
+            <section id="programas" class="section">
+                <div class="section-header">
+                    <h2>Programas disponibles</h2>
+                    <button id="btnModalidades" class="btn-gold" style="width:auto; padding:10px 18px;">Modalidades y Precios</button>
+                </div>
+                <div id="contenedorTarjetas" class="classes-grid"></div>
+            </section>
+
+            <section id="estructura" class="section">
+                <div class="section-header">
+                    <h2>Estructura de cada clase</h2>
+                </div>
+                <div class="section-note">
+                    <p>🔸 30 minutos de ejercicio físico en tierra (fuerza, resistencia y movilidad).</p>
+                    <p>🔸 60 minutos de entrenamiento en el agua (técnica, velocidad y resistencia).</p>
+                </div>
+            </section>
+
+            <section id="entrenador" class="section">
+                <div class="section-header">
+                    <h2>Entrenador y equipo</h2>
+                </div>
+                <div class="section-content info-grid">
+                    <div class="info-card">
+                        <h3>Coach Principal: Marco Martin</h3>
+                        <p>Especialista en alto rendimiento con más de 10 años de experiencia, al igual que especialista en preparación física. "Mi objetivo es que cada brazada cuente y cada alumno supere sus propios límites".</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Staff de Apoyo</h3>
+                        <p>Nuestro equipo incluye fisioterapeutas deportivos y asistentes técnicos que supervisan cada entrenamiento para garantizar que la técnica sea correcta y libre de lesiones.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="galeria" class="section">
+                <div class="section-header">
+                    <h2>Galería</h2>
+                </div>
+                <div class="gallery-grid">
+                    <div class="gallery-item" style="background-image: url('/entrenador.jpg');"><span>Entrenador</span></div>
+                    <div class="gallery-item" style="background-image: url('/playa.jpg');"><span>Entrenamiento en la playa</span></div>
+                    <div class="gallery-item" style="background-image: url('/equipoactivo.jpg');"><span>Equipo activo</span></div>
+                </div>
+            </section>
+
+            <section id="registro" class="section">
+                <div class="section-header">
+                    <h2>Inscripción</h2>
+                </div>
+                <div class="contact-grid">
+                    <div class="contact-card form-card">
+                        <h3>Formulario de inscripción</h3>
+                        <form id="registroAlumnoForm">
+                            <div class="form-group">
+                                <label>NOMBRE COMPLETO</label>
+                                <input type="text" id="formNombre" placeholder="Ej. Mariana Ortiz" required>
+                            </div>
+                            <div class="form-group">
+                                <label>WHATSAPP DE CONTACTO</label>
+                                <input type="tel" id="formTelefono" placeholder="Ej. 9991234567" required>
+                            </div>
+                            <div class="form-group">
+                                <label>CONTRASEÑA</label>
+                                <input type="password" id="formPassword" placeholder="Crea una contraseña segura" required>
+                            </div>
+                            <div class="form-group">
+                                <label>MODALIDAD DE INTERÉS</label>
+                                <select id="formClaseId"></select>
+                            </div>
+                            <button type="submit" class="btn-gold">Registrar inscripción</button>
+                        <p id="registroMessage" class="form-message"></p>
+                        </form>
+                    </div>
+                    <div class="contact-card">
+                        <h3>Contacto</h3>
+                        <p>¿Tienes dudas o quieres coordinar una clase muestra? Contáctanos y te responderemos rápidamente.</p>
+                        <p>📞 <strong>WhatsApp:</strong> +52 999 640 4677</p>
+                        <p>🕒 <strong>Horarios:</strong> L-V: 6am - 9pm / Sáb: 7am - 12pm</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            © 2026 Jaguares Swim. Todos los derechos reservados.
+        </footer>
+    </div>
+
+    <a href="https://wa.me/529996404677" class="whatsapp-float" target="_blank">📲</a>
+
+    <!-- Contenedor del Rasguño -->
+    <div id="jaguarScratch" class="scratch-wrap">
+        <svg class="scratch-svg" viewBox="0 0 700 500">
+            <defs>
+                <!-- Filtro Ultra Realista: Simula desgarre físico y relieves de material -->
+                <filter id="jaguar-ultra-real-filter" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="8" seed="42" result="noise" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="80" xChannelSelector="R" yChannelSelector="G" result="distorted" />
+                    <feComponentTransfer in="distorted" result="hardened">
+                        <feFuncA type="discrete" tableValues="0 1" />
+                    </feComponentTransfer>
+                    <feSpecularLighting in="noise" surfaceScale="8" specularConstant="1.2" specularExponent="40" lighting-color="#ffffff" result="specular">
+                        <feDistantLight azimuth="225" elevation="60" />
+                    </feSpecularLighting>
+                    <feComposite in="specular" in2="hardened" operator="in" result="shimmer" />
+                    <feMerge>
+                        <feMergeNode in="hardened" />
+                        <feMergeNode in="shimmer" />
+                    </feSpecularLighting>
+                </filter>
+
+                <!-- Gradiente de textura de fibra desgarrada -->
+                <linearGradient id="shred-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#120800; stop-opacity:1" /> 
+                    <stop offset="15%" style="stop-color:#633d06; stop-opacity:1" /> 
+                    <stop offset="40%" style="stop-color:#d4af37; stop-opacity:1" /> 
+                    <stop offset="60%" style="stop-color:#fceabb; stop-opacity:1" /> 
+                    <stop offset="90%" style="stop-color:#ffffff; stop-opacity:0.9" /> 
+                    <stop offset="100%" style="stop-color:#ffffff; stop-opacity:0" /> 
+                </linearGradient>
+            </defs>
+
+            <!-- Trazos de garras con micro-variaciones -->
+            <path class="claw-path" d="M580,40 C500,140 300,280 40,340" />
+            <path class="claw-path" d="M620,110 C540,210 340,350 80,410" style="animation-delay: 0.04s;" />
+            <path class="claw-path" d="M660,180 C580,280 380,420 120,480" style="animation-delay: 0.08s;" />
+            
+            <!-- Micro-desgarres (debris/esquirlas) -->
+            <path class="claw-path" d="M540,30 Q510,50 490,45" style="stroke-width:12; opacity:0.6;" />
+            <path class="claw-path" d="M590,100 Q560,120 540,115" style="stroke-width:14; opacity:0.5;" />
+            <path class="claw-path" d="M180,350 Q150,370 120,365" style="stroke-width:16; opacity:0.7;" />
+        </svg>
+    </div>
+
+    <!-- Sonido del Rugido -->
+    <audio id="roarSound" src="ROAR.MP3" preload="auto"></audio>
+
+    <script>
+        const apiClasesUrl = '/api/Clases';
+        const apiAlumnosUrl = '/api/Alumnos';
+
+        const backupClases = [
+            { Id: 1, Horario: '🔹 Modalidad #1 – 2 clases por semana', Costo: 800, Descripcion: '📆 Días: A elegir\n💰 Costo: $800 (8 clases en 4 semanas)' },
+            { Id: 2, Horario: '🔹 Modalidad #2 – 3 clases por semana', Costo: 900, Descripcion: '📆 Días: A elegir\n💰 Costo: $900 (12 clases en 4 semanas)' },
+            { Id: 3, Horario: '🔹 Modalidad #3 – Clases de lunes a viernes', Costo: 1160, Descripcion: '📆 Días: Lunes a viernes\n💰 Costo: $1,160 (20 clases en 4 semanas)' }
+        ];
+
+        async function cargarClases() {
+            try {
+                const respuesta = await apiFetch(apiClasesUrl);
+                const clases = await respuesta.json();
+                renderClases(clases);
+            } catch (error) {
+                console.warn('API no disponible, usando datos locales.', error);
+                renderClases(backupClases);
+            }
+        }
+
+        function renderClases(clases) {
+            const contenedor = document.getElementById('contenedorTarjetas');
+            const selector = document.getElementById('formClaseId');
+            contenedor.innerHTML = '';
+            selector.innerHTML = '';
+
+            clases.forEach(clase => {
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'price-card';
+                const horario = clase.horario || clase.Horario || 'Sin horario';
+                const costo = clase.costo ?? clase.Costo ?? 0;
+                const descripcion = (clase.descripcion || clase.Descripcion || '').replace(/\n/g, '<br>');
+                tarjeta.innerHTML = `
+                    <h3>${horario}</h3>
+                    <div class="price">$${costo} MXN <span style="font-size:14px; font-weight:normal; color:#6e6e73;">/ mes</span></div>
+                    <p style="font-size:13px; color:#666; margin-top:8px;">${descripcion}</p>
+                `;
+                contenedor.appendChild(tarjeta);
+
+                const opcion = document.createElement('option');
+                opcion.value = clase.id ?? clase.Id;
+                opcion.textContent = `${horario} — $${costo}`;
+                selector.appendChild(opcion);
+            });
+
+            const modalBtn = document.getElementById('btnModalidades');
+            modalBtn.onclick = () => showModal(clases);
+            ensureSelectorHasPlaceholder(selector);
+        }
+
+        function playScratchAnimation() {
+            const scratch = document.getElementById('jaguarScratch');
+            
+            // Lanzar confeti dorado y blanco
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#d4af37', '#ffffff', '#f3cf5c']
+            });
+
+            const roar = document.getElementById('roarSound');
+            
+            // Intentar reproducir sonido
+            if (roar) {
+                roar.currentTime = 0;
+                roar.play().catch(err => console.warn("No se pudo reproducir el rugido:", err));
+            }
+
+            scratch.classList.add('slash-active');
+            
+            return new Promise(resolve => setTimeout(() => {
+                scratch.classList.remove('slash-active');
+                resolve();
+            }, 2500));
+        }
+
+        document.getElementById('registroAlumnoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('formNombre');
+            const phoneInput = document.getElementById('formTelefono');
+            const classSelect = document.getElementById('formClaseId');
+            const messageEl = document.getElementById('registroMessage');
+            messageEl.textContent = '';
+            messageEl.classList.remove('error');
+
+            const nombre = nameInput.value.trim();
+            const telefono = phoneInput.value.trim();
+            const claseId = parseInt(classSelect.value, 10);
+            const telefonoValido = /^[0-9]{10}$/.test(telefono);
+
+            if (!nombre) {
+                messageEl.textContent = 'Ingresa tu nombre completo.';
+                messageEl.classList.add('error');
+                return;
+            }
+
+            if (!telefonoValido) {
+                messageEl.textContent = 'Ingresa un número de WhatsApp válido de 10 dígitos.';
+                messageEl.classList.add('error');
+                return;
+            }
+
+            if (!claseId) {
+                messageEl.textContent = 'Selecciona una modalidad antes de enviar.';
+                messageEl.classList.add('error');
+                return;
+            }
+
+            const nuevoAlumno = {
+                nombreCompleto: nombre,
+                telefono,
+                password: document.getElementById('formPassword').value.trim(),
+                nivelNado: 'General Nocturno',
+                claseId
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'PROCESANDO...';
+
+            try {
+                const respuesta = await apiFetch(apiAlumnosUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nuevoAlumno)
+                });
+                if (respuesta.ok) {
+                        await playScratchAnimation();
+                        Swal.fire('¡Éxito!', 'Inscripción registrada. ¡Nos vemos en la alberca! 🐆', 'success');
+                    this.reset();
+                } else {
+                    const mensaje = await respuesta.text();
+                    Swal.fire('Error', mensaje, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+            }
+            }
+        });
+
+        function ensureSelectorHasPlaceholder(selector) {
+            if (selector && selector.options.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'No hay modalidades disponibles';
+                selector.appendChild(opt);
+            }
+        }
+
+        function showModal(clases) {
+            let backdrop = document.getElementById('modalBackdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.id = 'modalBackdrop';
+                backdrop.className = 'modal-backdrop';
+                backdrop.innerHTML = `
+                    <div class="modal" role="dialog" aria-modal="true">
+                        <span class="close">✕</span>
+                        <h3>Modalidades y Precios</h3>
+                        <div id="modalContent"></div>
+                    </div>
+                `;
+                document.body.appendChild(backdrop);
+                backdrop.querySelector('.close').addEventListener('click', () => backdrop.classList.remove('show'));
+                backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.classList.remove('show'); });
+            }
+            const content = backdrop.querySelector('#modalContent');
+            content.innerHTML = '';
+            clases.forEach(clase => {
+                const horario = clase.horario || clase.Horario || 'Sin horario';
+                const costo = clase.costo ?? clase.Costo ?? 0;
+                const descripcion = (clase.descripcion || clase.Descripcion || '').replace(/\n/g, '<br>');
+                const row = document.createElement('div');
+                row.className = 'clase-row';
+                row.innerHTML = `<strong>${horario}</strong> — <span style="color:var(--water-blue)">$${costo}</span> / mes<div style="margin-top:10px; color:#cfd7dd; font-size:13px;">${descripcion}</div>`;
+                content.appendChild(row);
+            });
+            backdrop.classList.add('show');
+        }
+
+        cargarClases();
+    </script>
+</body>
+</html>

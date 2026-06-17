@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Jaguares.Api/Jaguares.Api.csproj" />
+    <Project Path="src/Jaguares.Host/Jaguares.Host.csproj" />
+    <Project Path="src/Jaguares.Shared/Jaguares.Shared.csproj" />
+    <Project Path="src/Jaguares.Web/Jaguares.Web.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Alumno - Jaguares Swim</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <style>
+        /* Scrollbar Personalizado */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #070b0e; }
+        ::-webkit-scrollbar-thumb { 
+            background: #d4af37; 
+            border-radius: 10px;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Montserrat', -apple-system, sans-serif;
+            background-color: #071116;
+            background-image: linear-gradient(rgba(7, 17, 22, 0.8), rgba(7, 17, 22, 0.8)), url('LOGO.PNG');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-attachment: fixed;
+            background-size: clamp(280px, 50vw, 500px);
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        .portal-shell {
+            width: 100%;
+            max-width: 940px;
+            background: rgba(7, 17, 26, 0.9);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: clamp(15px, 5vw, 32px);
+            box-shadow: 0 30px 90px rgba(0,0,0,0.45);
+        }
+        .portal-header {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+        .portal-header h1 {
+            margin: 0;
+            font-size: clamp(28px, 4vw, 38px);
+            color: #d4af37;
+        }
+        .portal-header p {
+            margin: 0;
+            color: #cbd5e1;
+            max-width: 620px;
+        }
+        .lookup-card, .result-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .lookup-card label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #d4af37;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .lookup-card input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.24);
+            color: #fff;
+            font-size: 15px;
+        }
+        .lookup-card button {
+            margin-top: 16px;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: none;
+            background: #d4af37;
+            color: #071116;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .result-card h2 {
+            margin: 0 0 16px 0;
+            color: #fff;
+            font-size: 20px;
+        }
+        .result-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        .result-section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 18px;
+        }
+        .result-section h3 {
+            margin: 0 0 12px 0;
+            color: #d4af37;
+            font-size: 15px;
+        }
+        .result-section p, .result-section li {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .status-pill {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(16, 185, 129, 0.16);
+            color: #10b981;
+        }
+        .status-pill.due {
+            background: rgba(239, 68, 68, 0.16);
+            color: #ef4444;
+        }
+        .error-message {
+            color: #fecaca;
+            margin-top: 14px;
+            font-size: 13px;
+        }
+        .success-message {
+            color: #a7f3d0;
+            margin-top: 14px;
+            font-size: 13px;
+        }
+        #qrcode {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        @media (max-width: 760px) {
+            .result-columns { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="portal-shell">
+        <div class="portal-header">
+            <div>
+                <h1>Portal de Alumno</h1>
+                <p>Consulta tu inscripción, estado de pago y asistencia rápidamente con tu número de WhatsApp.</p>
+            </div>
+            <div><a href="index.html" style="color:#d4af37; text-decoration:none; font-weight:700;">Regresar al sitio</a></div>
+        </div>
+
+        <div class="lookup-card" id="loginCard">
+            <label for="lookupTelefono">Número de WhatsApp</label>
+            <input type="tel" id="lookupTelefono" placeholder="Ej. 9991234567">
+            <label for="lookupPassword">Contraseña</label>
+            <input type="password" id="lookupPassword" placeholder="Ingresa tu contraseña">
+            <button type="button" onclick="loginAlumno()">Iniciar sesión</button>
+            <p id="lookupMessage" class="error-message"></p>
+        </div>
+
+        <div id="resultContainer" class="result-card" style="display:none;">
+            <h2>Resultado de la consulta</h2>
+            <div class="result-columns">
+                <div class="result-section">
+                    <h3>Datos del alumno</h3>
+                    <p><strong>Nombre:</strong> <span id="resNombre"></span></p>
+                    <p><strong>Teléfono:</strong> <span id="resTelefono"></span></p>
+                    <p><strong>Modalidad:</strong> <span id="resModalidad"></span></p>
+                    <p><strong>Mensualidad:</strong> $<span id="resPrecio"></span></p>
+                    <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <p style="font-size: 11px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold;">Redes del Equipo</p>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <a href="https://www.instagram.com/jaguares_swim" target="_blank" style="color: #f8fafc; text-decoration: none; font-size: 13px; border-bottom: 1px solid var(--gold); padding-bottom: 2px;">📸 Instagram</a>
+                            <a href="https://www.facebook.com/search/top?q=JAguares%20MX" target="_blank" style="color: #f8fafc; text-decoration: none; font-size: 13px; border-bottom: 1px solid var(--gold); padding-bottom: 2px;">🔵 Facebook</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="result-section" style="text-align:center; background: linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(0,0,0,0.4) 100%); border: 2px solid var(--gold);">
+                    <h3 style="letter-spacing: 2px; text-transform: uppercase;">Membresía Digital</h3>
+                    <div id="qrcode" style="margin: 15px auto; padding: 15px; background: white; border-radius: 15px; box-shadow: 0 0 20px rgba(212,175,55,0.3);"></div>
+                    <div style="font-size: 10px; color: var(--gold); font-weight: bold; margin-bottom: 5px;">JAGUARES SWIM ELITE</div>
+                    <p style="font-size:11px; opacity: 0.8;">Escanea este código al ingresar a la alberca.</p>
+                </div>
+                <div class="result-section">
+                    <h3>Estado de pago</h3>
+                    <p id="resPagoStatus"></p>
+                    <div id="uploadSection" style="margin-top:10px; display:none;">
+                        <label style="font-size:11px; color:#d4af37; display:block; margin-bottom:5px;">SUBIR COMPROBANTE</label>
+                        <input type="file" id="fileComprobante" style="font-size:12px;">
+                        <button onclick="subirComprobante()" style="padding:8px; font-size:12px; margin-top:5px;">Enviar</button>
+                    </div>
+                    <p><strong>Vencimiento:</strong> <span id="resPagoFecha"></span></p>
+                </div>
+            </div>
+            <div class="result-section" style="margin-top: 18px;">
+                <h3>Últimas asistencias</h3>
+                <ul id="resAsistencias" style="padding-left: 18px;"></ul>
+            </div>
+            <div id="portalActions" style="margin-top:18px; display:none;"></div>
+        </div>
+
+        <div style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; text-align: center;">
+            <p style="font-size: 12px; color: #d4af37; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Redes Sociales Oficiales</p>
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                <a href="https://www.instagram.com/jaguares_swim" target="_blank" style="color: #f8fafc; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;">📸 Instagram: @jaguares_swim</a>
+                <a href="https://www.facebook.com/search/top?q=JAguares%20MX" target="_blank" style="color: #f8fafc; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;">🔵 Facebook: JAguares MX</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiLoginUrl = '/api/Alumnos/login';
+        const apiMeUrl = '/api/Alumnos/me';
+        const apiLogoutUrl = '/api/Alumnos/logout';
+
+        async function cargarUsuario() {
+            const messageEl = document.getElementById('lookupMessage');
+            messageEl.textContent = '';
+
+            // Sin token no hay sesión: mostramos el login directamente.
+            if (!JaguaresApi.getToken()) {
+                mostrarLogin();
+                return;
+            }
+
+            try {
+                const respuesta = await apiFetch(apiMeUrl);
+                if (!respuesta.ok) {
+                    JaguaresApi.clearToken();
+                    mostrarLogin();
+                    return;
+                }
+
+                const data = await respuesta.json();
+                mostrarResultado(data);
+            } catch (error) {
+                console.error(error);
+                mostrarLogin();
+            }
+        }
+
+        function mostrarLogin() {
+            document.getElementById('loginCard').style.display = 'block';
+            document.getElementById('resultContainer').style.display = 'none';
+        }
+
+        function mostrarResultado(data) {
+            document.getElementById('loginCard').style.display = 'none';
+            document.getElementById('lookupMessage').textContent = '';
+            document.getElementById('resNombre').textContent = data.nombreCompleto;
+            document.getElementById('resTelefono').textContent = data.telefono;
+            document.getElementById('resModalidad').textContent = data.modalidad || 'No disponible';
+            document.getElementById('resPrecio').textContent = data.precioMensual?.toFixed(0) ?? '0';
+
+            // Generar el QR usando el teléfono del alumno
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: data.telefono,
+                width: 128,
+                height: 128
+            });
+
+            if (data.pago && !data.pago.estaPagado) {
+                document.getElementById('uploadSection').style.display = 'block';
+                window.currentPagoId = data.pago.id || data.pago.Id; 
+            } else {
+                document.getElementById('uploadSection').style.display = 'none';
+            }
+
+            if (data.pago) {
+                document.getElementById('resPagoFecha').textContent = new Date(data.pago.fechaVencimiento).toLocaleDateString('es-MX');
+                document.getElementById('resPagoStatus').innerHTML = data.pago.estaPagado
+                    ? '<span class="status-pill">Pagado</span>'
+                    : '<span class="status-pill due">Pendiente</span>';
+            } else {
+                document.getElementById('resPagoFecha').textContent = '-';
+                document.getElementById('resPagoStatus').innerHTML = '<span class="status-pill due">Sin pago registrado</span>';
+            }
+
+            const asistenciasEl = document.getElementById('resAsistencias');
+            asistenciasEl.innerHTML = '';
+            if (data.asistencias && data.asistencias.length > 0) {
+                data.asistencias.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `${new Date(item.fecha).toLocaleDateString('es-MX')} — ${item.asistio ? 'Asistió' : 'No asistió'}${item.nota ? ` (${item.nota})` : ''}`;
+                    asistenciasEl.appendChild(li);
+                });
+            } else {
+                asistenciasEl.innerHTML = '<li>No hay registros recientes de asistencia.</li>';
+            }
+
+            const portalActions = document.getElementById('portalActions');
+            portalActions.innerHTML = '';
+            const botonCerrar = document.createElement('button');
+            botonCerrar.textContent = 'Cerrar sesión';
+            botonCerrar.style.background = '#d4af37';
+            botonCerrar.style.color = '#071116';
+            botonCerrar.style.marginTop = '12px';
+            botonCerrar.onclick = cerrarSesion;
+            portalActions.appendChild(botonCerrar);
+            portalActions.style.display = 'block';
+            document.getElementById('resultContainer').style.display = 'block';
+        }
+
+        async function loginAlumno() {
+            const telefono = document.getElementById('lookupTelefono').value.trim();
+            const password = document.getElementById('lookupPassword').value.trim();
+            const messageEl = document.getElementById('lookupMessage');
+            messageEl.textContent = '';
+
+            if (!telefono || !password) {
+                messageEl.textContent = 'Ingresa tu número y contraseña.';
+                return;
+            }
+
+            try {
+                const respuesta = await apiFetch(apiLoginUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telefono, password })
+                });
+
+                if (!respuesta.ok) {
+                    const texto = await respuesta.text();
+                    messageEl.textContent = texto || 'Credenciales incorrectas.';
+                    return;
+                }
+
+                // Guardamos el token JWT devuelto por la API.
+                const data = await respuesta.json();
+                if (data.token) JaguaresApi.setToken(data.token);
+
+                await cargarUsuario();
+            } catch (error) {
+                console.error(error);
+                messageEl.textContent = 'Error de conexión. Intenta de nuevo.';
+            }
+        }
+
+        async function subirComprobante() {
+            const fileInput = document.getElementById('fileComprobante');
+            if (!fileInput.files[0]) return alert("Selecciona un archivo primero.");
+            
+            if (!window.currentPagoId) {
+                alert("Error: No se encontró el ID del pago. Recarga la página.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await apiFetch(`/api/Pagos/${window.currentPagoId}/subir-comprobante`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (res.ok) {
+                    alert("Comprobante enviado con éxito. Espera la validación del administrador.");
+                } else {
+                    alert("Error al subir el comprobante.");
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cerrarSesion() {
+            try { await apiFetch(apiLogoutUrl, { method: 'POST' }); } catch (e) { /* sin conexión: ignoramos */ }
+            JaguaresApi.clearToken();
+            document.getElementById('lookupPassword').value = '';
+            mostrarLogin();
+        }
+
+        cargarUsuario();
+    </script>
+</body>
+</html>

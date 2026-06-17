@@ -1,0 +1,36 @@
+## Carpetas de compilación
+bin/
+obj/
+publish/
+
+## Base de datos local SQLite (no subir datos reales de alumnos)
+*.db
+*.db-shm
+*.db-wal
+
+## Carpeta persistente de datos (base de datos SQLite en producción)
+App_Data/
+
+## Secretos por entorno (la API en somee y el front en monsterasp usan estos).
+## El appsettings.json base SÍ se versiona pero solo con placeholders;
+## los valores reales (conexiones, Jwt:Key, Admin:Password) van aquí y NO se suben.
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+
+## Configuración local de Claude Code (puede contener comandos con secretos)
+.claude/settings.local.json
+
+## Comprobantes subidos por los alumnos
+src/Jaguares.Api/wwwroot/uploads/
+
+## Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Logs
+*.log
