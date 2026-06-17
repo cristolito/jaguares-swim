@@ -11,9 +11,9 @@ publish/
 ## Carpeta persistente de datos (base de datos SQLite en producción)
 App_Data/
 
-## Secretos por entorno (la API en somee y el front en monsterasp usan estos).
-## El appsettings.json base SÍ se versiona pero solo con placeholders;
-## los valores reales (conexiones, Jwt:Key, Admin:Password) van aquí y NO se suben.
+## Secretos: NINGÚN appsettings se versiona (contienen conexiones, Jwt:Key y Admin:Password).
+## Si se necesita una plantilla para el repo, usar un appsettings.example.json sin secretos.
+appsettings.json
 appsettings.Development.json
 appsettings.Production.json
 appsettings.Staging.json
